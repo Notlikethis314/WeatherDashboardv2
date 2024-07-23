@@ -1,6 +1,5 @@
 import requests
 import os
-import json
 from dotenv import load_dotenv
 import mysql.connector
 
@@ -51,10 +50,6 @@ mydb = mysql.connector.connect(
 )
 
 cursor = mydb.cursor()
-
-#API_ENDPOINT = f"https://api.openweathermap.org/data/2.5/weather?lat=44.34&lon=10.99&appid={API_KEY}"
-API_ENDPOINT = f"http://api.openweathermap.org/geo/1.0/direct?q=Třinec&limit=5&appid={API_KEY}"
-#API_ENDPOINT = f"https://api.openweathermap.org/data/3.0/onecall?lat={49.1922443}&lon={16.6113382}&appid={API_KEY}"
 
 for city in cities:
     

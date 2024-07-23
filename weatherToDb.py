@@ -3,10 +3,10 @@ import os
 import json
 from dotenv import load_dotenv
 import mysql.connector
-import logging
+#import logging
 
 # Setup logging
-logging.basicConfig(filename='weather_data.log', level=logging.INFO)
+#logging.basicConfig(filename='weather_data.log', level=logging.INFO)
 
 def store_current_weather(connection, current_weather_data, columns):
     try:
@@ -22,9 +22,10 @@ def store_current_weather(connection, current_weather_data, columns):
             
             cursor.execute(sql, values)
         connection.commit()
-        logging.info("Weather data stored successfully.")
+        #logging.info("Weather data stored successfully.")
     except mysql.connector.Error as e:
-        logging.error(f"Error storing weather data: {e}")
+        #logging.error(f"Error storing weather data: {e}")
+        print(e)
 
 def fetch_locations_from_db(connection):
     try:
@@ -33,10 +34,12 @@ def fetch_locations_from_db(connection):
             sql = "SELECT id, location_name, lat, lon FROM weatherData.locations"
             cursor.execute(sql)
             data = cursor.fetchall()
-            return(data)
-        logging.info("Location data fetched.")
+            #logging.info("Location data fetched.")
+            return(data)   
+        
     except mysql.connector.Error as e:
-        logging.error(f"Error fetching location data: {e}")
+        #logging.error(f"Error fetching location data: {e}")
+        print(e)
 
 def fetch_weather_data(api_key, location_data):
     lat = location_data['lat']
@@ -49,7 +52,7 @@ def fetch_weather_data(api_key, location_data):
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        logging.error(f"Error fetching weather data: {e}")
+        #logging.error(f"Error fetching weather data: {e}")
         return None
 
 

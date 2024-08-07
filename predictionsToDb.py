@@ -73,7 +73,6 @@ def store_daily_pred_data(connection, weather_data, columns):
             
             cursor.execute(sql, values)
         connection.commit()
-        print("Weather data stored successfully.")
     except mysql.connector.Error as e:
         print(f"Error storing weather data: {e}")
 

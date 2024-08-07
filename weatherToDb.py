@@ -97,6 +97,7 @@ def fetch_weather_data(api_key, location_data):
         return response.json()
     except requests.RequestException as e:
         #logging.error(f"Error fetching weather data: {e}")
+        print(e)
         return None
 
 
@@ -106,7 +107,7 @@ def main():
     API_KEY = os.getenv("API_KEY")
     PASSWORD = os.getenv("PASSWORD")
     HOST = os.getenv("HOST")
-    USER = os.getenv("USER")
+    USER = os.getenv("USER_DB")
 
     # DB connection
     mydb = mysql.connector.connect(

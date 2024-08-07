@@ -27,6 +27,35 @@ def store_current_weather(connection, current_weather_data, columns):
         #logging.error(f"Error storing weather data: {e}")
         print(e)
 
+def store_daily_pred_data(connection, weather_data, columns):
+    try:
+        with connection.cursor() as cursor:
+            # Construct the SQL query dynamically based on the columns list
+            columns_str = ', '.join(columns)
+            placeholders_str = ', '.join(['%s'] * len(columns))
+            
+            sql = f"INSERT INTO weatherData.daily_pred ({columns_str}) VALUES ({placeholders_str})"
+            
+            # Extract the values for the specified columns from weather_data
+            values = []
+            for col in columns:
+                if col.startswith('temp_'):
+                    key = col.replace('temp_', '')
+                    values.append(weather_data['temp'][key])
+                elif col.startswith('feels_like_'):
+                    key = col.replace('feels_like_', '')
+                    values.append(weather_data['feels_like'][key])
+                elif col.startswith('weather_'):
+                    key = col.replace('weather_', '')
+                    values.append(weather_data['weather'][0][key])
+                else:
+                    values.append(weather_data[col])
+            
+            cursor.execute(sql, values)
+        connection.commit()
+    except mysql.connector.Error as e:
+        print(f"Error storing weather data: {e}")
+
 def fetch_locations_from_db(connection):
     try:
         with connection.cursor(dictionary=True) as cursor:
@@ -36,6 +65,21 @@ def fetch_locations_from_db(connection):
             data = cursor.fetchall()
             #logging.info("Location data fetched.")
             return(data)   
+        
+    except mysql.connector.Error as e:
+        #logging.error(f"Error fetching location data: {e}")
+        print(e)
+
+def fetch_current_id(connection, id_location):
+    try:
+        with connection.cursor(dictionary=True) as cursor:
+
+            # Fetch the locations from DB with info
+            sql = f"SELECT max(id_current) as id FROM weatherData.current WHERE id_location = {id_location};"
+            cursor.execute(sql)
+            data = cursor.fetchall()
+            #logging.info("Location data fetched.")
+            return(data[0]['id'])   
         
     except mysql.connector.Error as e:
         #logging.error(f"Error fetching location data: {e}")
@@ -88,6 +132,15 @@ def main():
         'wind_deg'
     ]
 
+    columns_daily_pred = [
+        'id_current', 'dt', 'sunrise', 'sunset',
+        'temp_day', 'temp_min', 'temp_max', 'temp_night', 'temp_eve', 'temp_morn',
+        'feels_like_day', 'feels_like_night', 'feels_like_eve', 'feels_like_morn',
+        'pressure', 'humidity', 'dew_point', 'wind_speed', 'wind_deg',
+        'weather_id', 'weather_main', 'weather_description', 'weather_icon',
+        'clouds', 'pop', 'uvi'
+    ]
+
     locations = fetch_locations_from_db(mydb)
 
     for location in locations:
@@ -99,6 +152,17 @@ def main():
         weather_data['current']['id_location'] = id_location
         # Store current weather data into DB
         store_current_weather(mydb, weather_data, columns)
+        # Fetch last id_current
+        id_current = fetch_current_id(mydb, id_location)
+        # Define daily pred data
+        daily_pred = weather_data['daily']
+        # Store daily pred data loop
+        for prediction in daily_pred:
+            # Store id_current
+            prediction['id_current'] = id_current
+            store_daily_pred_data(mydb, prediction, columns=columns_daily_pred)
+
+
         
 if __name__ == "__main__":
     main()

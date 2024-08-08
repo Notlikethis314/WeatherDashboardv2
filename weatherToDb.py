@@ -56,6 +56,33 @@ def store_daily_pred_data(connection, weather_data, columns):
     except mysql.connector.Error as e:
         print(f"Error storing weather data: {e}")
 
+def store_hourly_pred_data(connection, weather_data, columns):
+    try:
+        with connection.cursor() as cursor:
+            # Construct the SQL query dynamically based on the columns list
+            columns_str = ', '.join(columns)
+            placeholders_str = ', '.join(['%s'] * len(columns))
+            
+            sql = f"INSERT INTO weatherData.hourly_pred ({columns_str}) VALUES ({placeholders_str})"
+            
+            # Extract the values for the specified columns from weather_data
+            values = []
+            for col in columns:
+                if col.startswith('weather_'):
+                    key = col.replace('weather_', '')
+                    values.append(weather_data['weather'][0][key])
+                elif col == 'rain_1h':
+                    # Handle the optional "rain" field
+                    values.append(weather_data.get('rain', {}).get('1h', None))
+                else:
+                    values.append(weather_data[col])
+            
+            cursor.execute(sql, values)
+        connection.commit()
+        #print("Weather data stored successfully.")
+    except mysql.connector.Error as e:
+        print(f"Error storing weather data: {e}")
+
 def fetch_locations_from_db(connection):
     try:
         with connection.cursor(dictionary=True) as cursor:
@@ -89,7 +116,7 @@ def fetch_weather_data(api_key, location_data):
     lat = location_data['lat']
     lon = location_data['lon']
 
-    API_ENDPOINT = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude=hourly,alerts,minutely&appid={api_key}"
+    API_ENDPOINT = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude=alerts,minutely&appid={api_key}"
 
     try:
         response = requests.get(API_ENDPOINT)
@@ -142,6 +169,13 @@ def main():
         'clouds', 'pop', 'uvi'
     ]
 
+    columns_hourly_pred = [
+        'id_current', 'dt', 'temp', 'feels_like', 'pressure', 'humidity', 'dew_point', 'uvi',
+        'clouds', 'visibility', 'wind_speed', 'wind_deg', 'wind_gust',
+        'weather_id', 'weather_main', 'weather_description', 'weather_icon',
+        'pop', 'rain_1h'
+    ]
+
     locations = fetch_locations_from_db(mydb)
 
     for location in locations:
@@ -158,10 +192,17 @@ def main():
         # Define daily pred data
         daily_pred = weather_data['daily']
         # Store daily pred data loop
-        for prediction in daily_pred:
+        for daily_prediction in daily_pred:
             # Store id_current
-            prediction['id_current'] = id_current
-            store_daily_pred_data(mydb, prediction, columns=columns_daily_pred)
+            daily_prediction['id_current'] = id_current
+            store_daily_pred_data(mydb, daily_prediction, columns=columns_daily_pred)
+
+        hourly_pred = weather_data['hourly']
+        for hourly_prediction in hourly_pred:
+            # Store id_current
+            hourly_pred['id_current'] = id_current
+            # Store hourly pred into DB
+            store_hourly_pred_data(mydb, hourly_prediction, columns=columns_hourly_pred)
 
 
         

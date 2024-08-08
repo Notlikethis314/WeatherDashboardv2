@@ -22,7 +22,7 @@ def fetch_weather_data(api_key, location_data):
     lat = location_data['lat']
     lon = location_data['lon']
 
-    API_ENDPOINT = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude=hourly,alerts,minutely&appid={api_key}"
+    API_ENDPOINT = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude=alerts,minutely&appid={api_key}"
 
     try:
         response = requests.get(API_ENDPOINT)
@@ -76,17 +76,68 @@ def store_daily_pred_data(connection, weather_data, columns):
     except mysql.connector.Error as e:
         print(f"Error storing weather data: {e}")
 
+def store_hourly_pred_data(connection, weather_data, columns):
+    try:
+        with connection.cursor() as cursor:
+            # Construct the SQL query dynamically based on the columns list
+            columns_str = ', '.join(columns)
+            placeholders_str = ', '.join(['%s'] * len(columns))
+            
+            sql = f"INSERT INTO weatherData.hourly_pred ({columns_str}) VALUES ({placeholders_str})"
+            
+            # Extract the values for the specified columns from weather_data
+            values = []
+            for col in columns:
+                if col.startswith('weather_'):
+                    key = col.replace('weather_', '')
+                    values.append(weather_data['weather'][0][key])
+                elif col == 'rain_1h':
+                    # Handle the optional "rain" field
+                    values.append(weather_data.get('rain', {}).get('1h', None))
+                else:
+                    values.append(weather_data[col])
+            
+            cursor.execute(sql, values)
+        connection.commit()
+        print("Weather data stored successfully.")
+    except mysql.connector.Error as e:
+        print(f"Error storing weather data: {e}")
+
 location = {'lat': 49.1922443,'lon':16.6113382}
 # Fetch location data
-# weather_data = fetch_weather_data(API_KEY, location)
+#weather_data = fetch_weather_data(API_KEY, location)
 # Store location id
-with open('weather_data.json', 'r') as openfile:
+
+#json_object = json.dumps(weather_data, indent=4)
+ 
+# Writing to sample.json
+#with open("sample.json", "w") as outfile:
+#    outfile.write(json_object)
+
+
+with open('sample.json', 'r') as openfile:
  
     # Reading from json file
     weather_data = json.load(openfile)
 
 #print(weather_data['daily'][0])
 
+columns = [
+    'id_current', 'dt', 'temp', 'feels_like', 'pressure', 'humidity', 'dew_point', 'uvi',
+    'clouds', 'visibility', 'wind_speed', 'wind_deg', 'wind_gust',
+    'weather_id', 'weather_main', 'weather_description', 'weather_icon',
+    'pop', 'rain_1h'
+]
+
+pred_id = fetch_current_id(mydb, 33)
+
+daily_pred = weather_data['hourly']
+
+for prediction in daily_pred:
+    prediction['id_current'] = pred_id
+
+    store_hourly_pred_data(mydb, prediction, columns=columns)
+'''
 columns = [
     'id_current', 'dt', 'sunrise', 'sunset',
     'temp_day', 'temp_min', 'temp_max', 'temp_night', 'temp_eve', 'temp_morn',
@@ -108,3 +159,4 @@ for prediction in daily_pred:
 #daily_pred['id_current'] = pred_id
 
 #print(daily_pred)
+'''

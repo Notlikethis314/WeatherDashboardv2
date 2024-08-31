@@ -99,9 +99,10 @@ def store_hourly_pred_data(connection, weather_data, columns):
             
             cursor.execute(sql, values)
         connection.commit()
-        print("Weather data stored successfully.")
+        #print("Weather data stored successfully.")
     except mysql.connector.Error as e:
         print(f"Error storing weather data: {e}")
+
 
 location = {'lat': 49.1922443,'lon':16.6113382}
 # Fetch location data

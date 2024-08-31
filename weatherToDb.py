@@ -200,7 +200,7 @@ def main():
         hourly_pred = weather_data['hourly']
         for hourly_prediction in hourly_pred:
             # Store id_current
-            hourly_pred['id_current'] = id_current
+            hourly_prediction['id_current'] = id_current
             # Store hourly pred into DB
             store_hourly_pred_data(mydb, hourly_prediction, columns=columns_hourly_pred)
 

@@ -31,12 +31,13 @@ sql = '''
 SELECT 
 	c.temp - 272.15 as TEMP,
     l.location_name,
-    c.dt as timestamp,
+    c.dt + 3600*2 as timestamp,
     hp.temp - 272.15 as pred_TEMP,
-    hp.dt as pred_timestamp
+    hp.dt + 3600*2 as pred_timestamp
 FROM weatherData.current c 
 JOIN weatherData.locations l ON (l.id = c.id_location)
-JOIN weatherData.hourly_pred hp ON (hp.id_current = c.id_current);
+JOIN weatherData.hourly_pred hp ON (hp.id_current = c.id_current)
+WHERE l.location_name IN ('Brno', 'Prague');
 '''
 cursor.execute(sql)
 
@@ -56,13 +57,41 @@ app.layout = html.Div(
             style={'width': '200px'}
         ),
         html.Br(),
+        html.Div(
+            children=[
+                # City Name + current time div
+                html.Div(
+                    children=[
+                        # 
+                        html.Div(
+                            children=[
+                                html.H3('Current temperature: '),
+                                html.Br(),
+                                html.H1(id='current_temp_H1')
+                            ], style={'textAlign': 'center'}
+                        )
+                    ], style={'height':'400px', 'width':'25%', 'display':'inline-block','vertical-align':'top', 
+                              #'border': '1px solid', 'background-image': 'linear-gradient(180deg, #fff, #ddd 40%, #ccc)',
+                              #'box-shadow': '10px 5px 5px red'
+                              'border': '1px solid'}
+                ),
+                # Prediction div
+                html.Div(
+                    children=[
+                        html.H3('Test 2')
+                    ], style={'height':'400px', 'width':'75%', 'border':'1px solid', 'display':'inline-block'}
+                )
+            ], style={'display': 'flex', 'width': '100%', 'height': '500px'}
+        ),
         dcc.Graph(id='history_line_chart')
-    ]
+    ], style={'width':'100%'}
 )
 
 @app.callback(
     Output(component_id='history_line_chart', component_property='figure'),
+    Output(component_id='current_temp_H1', component_property='children'),
     Input(component_id='location_dd', component_property='value')
+    
 )
 
 def update_history_chart(dd_value):
@@ -70,9 +99,14 @@ def update_history_chart(dd_value):
 
     if dd_value:
         temp = temp[temp['location_name']==dd_value]
-        fig_history_line_chart = px.line(temp, x='timestamp', y='TEMP')
+        current_temp = temp.sort_values('timestamp', ascending=False).iloc[0]['TEMP']
+        current_temp_formated = f"{current_temp:.1f}°C"
 
-    return fig_history_line_chart
+        fig_history_line_chart = px.line(temp, x='timestamp', y='TEMP')
+    else:
+        fig_history_line_chart=px.line()
+
+    return fig_history_line_chart, current_temp_formated
 
 
 if __name__ == '__main__':

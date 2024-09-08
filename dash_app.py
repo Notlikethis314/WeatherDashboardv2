@@ -69,6 +69,11 @@ app.layout = html.Div(
                                 html.Br(),
                                 html.H1(id='current_temp_H1')
                             ], style={'textAlign': 'center'}
+                        ),
+                        html.Div(
+                            children=[
+                                html.H5('Current humidity: ')
+                            ]
                         )
                     ], style={'height':'400px', 'width':'25%', 'display':'inline-block','vertical-align':'top', 
                               #'border': '1px solid', 'background-image': 'linear-gradient(180deg, #fff, #ddd 40%, #ccc)',

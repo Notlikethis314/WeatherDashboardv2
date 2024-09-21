@@ -12,6 +12,21 @@ import plotly.graph_objects as go
 def create_label_value_list(input_list):
     return [{'label': item, 'value': item} for item in input_list]
 
+def execute_query_create_df(query):
+    cursor.execute(query)
+    temp = pd.DataFrame(cursor.fetchall())
+    temp.columns = next(zip(*cursor.description))
+    return temp
+
+def format_daily_pred_data(daily_pred_data):
+    daily_pred_data['day_temp'] = daily_pred_data['day_temp'].round(1).astype(str) + '°C'
+    daily_pred_data['night_temp'] = daily_pred_data['night_temp'].round(1).astype(str) + '°C'
+    daily_pred_data['cloudiness'] = daily_pred_data['cloudiness'].astype(str) + ' %'
+    daily_pred_data['weather_desc'] = daily_pred_data['weather_desc'].str.capitalize()
+    return daily_pred_data
+
+
+
 # Function to create measurement section
 def create_measure_section(measure):
     # Define the label and ID based on the measurement
@@ -44,8 +59,8 @@ def day_prediction_block(dict_values, width_of_block):
     'day_temp':'22°C', 
     'night_temp':'12°C', 
     'picture':'10d', 
-    'humidity':'33 %'
-    'weather_description':'Clouds'}
+    'cloudiness':'33 %'
+    'weather_desc':'Clouds'}
     '''
     # Common styles
     text_style = {
@@ -65,10 +80,12 @@ def day_prediction_block(dict_values, width_of_block):
             # Left column: day and temperatures
             html.Div(
                 children=[
-                    html.H1(dict_values.get('day', 'N/A'), style={**text_style, 'font-size': '16px', 'margin-top': '20px'}),
-                    html.Span(dict_values.get('day_temp', 'N/A'), style={**text_style, 'font-size': '34px', 'font-weight': 'bold'}),
+                    html.H1(dict_values.get('date', 'N/A'), style={**text_style, 'font-size': '15px', 'margin-top': '20px',}),
+                    html.H1(dict_values.get('day', 'N/A'), style={**text_style, 'font-size': '15px',}),
                     html.Br(),
-                    html.Span(dict_values.get('night_temp', 'N/A'), style={**text_style, 'font-size': '22px'})
+                    html.Span(dict_values.get('day_temp', 'N/A'), style={**text_style, 'font-size': '24px', 'font-weight': 'bold'}),
+                    html.Br(),
+                    html.Span(dict_values.get('night_temp', 'N/A'), style={**text_style, 'font-size': '18px'})
                 ],
                 style={
                     'width': '50%',
@@ -85,19 +102,20 @@ def day_prediction_block(dict_values, width_of_block):
                         children=[
                             html.Img(
                             src=f"https://openweathermap.org/img/wn/{dict_values.get('picture', '01d')}@2x.png",
-                            style={'width': '100%', 'height': '100%'}
+                            style={'width': '90%', 'height': '100%'}
                         ),
-                        html.Span(dict_values.get('weather_description', 'N/A'), style={**text_style, 'font-size': '15px', 'position': 'relative', 'bottom': '25px'})
+                        html.Span(dict_values.get('weather_desc', 'N/A'), style={**text_style, 'font-size': '12px', 'position': 'relative', 'bottom': '25px'})
                         ],
-                        style={**centered_flex_style, 'height': '70%', 'position': 'relative', 'text-align': 'center'}
+                        style={**centered_flex_style, 'height': '50%', 'text-align': 'center'}
                     ),
                     html.Div(
                         children=[
+                            html.Br(),
                             html.Span('Clouds : ', style={**text_style, 'font-size': '12px'}),
                             html.Br(),
-                            html.Span(dict_values.get('cloudiness', 'N/A'), style={**text_style, 'font-size': '20px'})
+                            html.Span(dict_values.get('cloudiness', 'N/A'), style={**text_style, 'font-size': '16px'})
                         ],
-                        style={**centered_flex_style, 'height': '30%', 'text-align': 'center'}
+                        style={**centered_flex_style, 'height': '50%', 'text-align': 'center'}
                     )
                 ],
                 style={
@@ -115,9 +133,19 @@ def day_prediction_block(dict_values, width_of_block):
             'box-sizing': 'border-box',
             'display': 'flex',
             'flex-direction': 'row',
+            'border-radius': '10px', 'background-color': '#e0e0e0',
+            'box-shadow': '4px 4px 8px rgba(0, 0, 0, 0.1)', 'margin-left': '10px',
+            'box-sizing': 'border-box'
         }
     )
 
+def create_prediction_blocks(list_of_dicts, width_of_block='12.5%'):
+    """
+    """
+    return [
+        day_prediction_block(dict_values, width_of_block=width_of_block) 
+        for dict_values in list_of_dicts
+    ]
 
 load_dotenv()
 # Variables
@@ -244,51 +272,54 @@ app.layout = html.Div(
                             style={
                                 'height': '400px', 
                                 'width': '25%', 
-                                'border-radius': '10px', 'background-color': '#f9f9f9',
+                                'border-radius': '10px', 'background-color': '#e0e0e0',
                                 'box-shadow': '0px 4px 8px rgba(0, 0, 0, 0.1)', 'padding': '20px',
-                                'box-sizing': 'border-box', 'vertical-align': 'top', 'display':'inline-block'}
+                                'box-sizing': 'border-box', 'vertical-align': 'top', 'display':'inline-block',
+                                'padding-right':'20px','padding-left':'20px'}
                         ),
                         
                         # Prediction part
                         html.Div(
                             children=[
                                 html.Div(
-                                    children=[
-                                        day_prediction_block(dict_values, width_of_block='12,5%'),
-                                        day_prediction_block(dict_values, width_of_block='12,5%'),
-                                        day_prediction_block(dict_values, width_of_block='12,5%'),
-                                        day_prediction_block(dict_values, width_of_block='12,5%'),
-                                        day_prediction_block(dict_values, width_of_block='12,5%'),
-                                        day_prediction_block(dict_values, width_of_block='12,5%'),
-                                        day_prediction_block(dict_values, width_of_block='12,5%'),
-                                        day_prediction_block(dict_values, width_of_block='12,5%')
-                                    ],
+                                    id='daily_prediction_blocks',
                                     style={
-                                        'height': '50%',
+                                        'height': '40%',
                                         'background-color': '#fff',
-                                        'box-shadow': '0px 2px 4px rgba(0, 0, 0, 0.1)', 
-                                        'box-sizing': 'border-box',
                                         'display': 'flex',  # Keep the 5 inner divs in a row
                                         'justify-content': 'space-between'
                                     }
                                 ),
-                                html.Div(style={
-                                    'height': '50%',
-                                    'background-color': '#fff',
-                                    'box-shadow': '0px 2px 4px rgba(0, 0, 0, 0.1)', 
-                                    'box-sizing': 'border-box',
-                                    'border': 'solid 1px'
+                                html.Div(
+                                    html.Div(
+                                        id='hourly_prediction_block',
+                                        children=[
+                                            dcc.Graph(id='hourly_pred_figure', style={'height':'120%', 'width':'50%', 'overflow': 'hidden'})
+                                        ],
+                                        style={
+                                            'height': 'calc(100% - 10px)', 
+                                            'width': '100%', 
+                                            'border-radius': '10px', 'background-color': '#e0e0e0',
+                                            'box-shadow': '0px 4px 8px rgba(0, 0, 0, 0.1)',
+                                            'box-sizing': 'border-box', 'vertical-align': 'top', 'display':'block',
+                                            'margin-top':'10px', 'margin-right':'10px', 'margin-left':'10px', 'overflow': 'hidden',
+                                            'align-items': 'center', 'justify-content': 'center'
+                                        }
+                                    ),
+                                    style={
+                                        'height': '60%',
+                                        'width':'100%',
                                 })
                             ], 
                             style={
                                 'height': '400px', 
                                 'width': '75%', 
                                 'display': 'inline-block', 
-                                'border-radius': '10px', 
-                                'background-color': '#f9f9f9',
-                                'box-shadow': '0px 4px 8px rgba(0, 0, 0, 0.1)', 
-                                'padding': '20px',
-                                'box-sizing': 'border-box'
+                                #'border-radius': '10px', 
+                                #'background-color': '#fff',
+                                #'box-shadow': '0px 4px 8px rgba(0, 0, 0, 0.1)', 
+                                #'padding': '10px',
+                                #'box-sizing': 'border-box'
                             }
                         )
                     ], 
@@ -320,6 +351,8 @@ app.layout = html.Div(
     Output(component_id='current_humidity', component_property='children'),
     Output(component_id='current_pressure', component_property='children'),
     Output(component_id='current_wind_speed', component_property='children'),
+    Output(component_id='daily_prediction_blocks', component_property='children'),
+    Output(component_id='hourly_pred_figure', component_property='figure'),
     Output(component_id='history_line_chart', component_property='figure'),
     Output(component_id='main_body', component_property='style'),
     Input(component_id='location_dd', component_property='value')
@@ -329,7 +362,7 @@ app.layout = html.Div(
 def update_history_chart(dd_value):
     current_info = []
 
-    sql = f'''
+    history_query = f'''
     SELECT 
         c.temp - 272.15 as TEMP,
         c.feels_like - 272.15 as TEMP_FEELS_LIKE,
@@ -337,23 +370,48 @@ def update_history_chart(dd_value):
         c.humidity as HUMIDITY,
         c.wind_speed as WIND_SPEED,
         l.location_name,
-        c.dt + (3600 * 2) as timestamp,
-        hp.temp - 272.15 as pred_TEMP,
-        hp.dt + (3600 * 2) as pred_timestamp
+        c.dt + (3600 * 2) as timestamp
+    FROM weatherData.current c 
+    JOIN weatherData.locations l ON (l.id = c.id_location)
+    WHERE l.location_name = '{dd_value}';
+    '''
+
+    temp = execute_query_create_df(history_query)
+    max_timestamp = temp['timestamp'].max() - (3600 * 2)
+
+    daily_pred_query = f'''
+    SELECT 
+        DATE_FORMAT(FROM_UNIXTIME(dp.dt + (3600 * 2)), '%W') as day,
+        DATE_FORMAT(FROM_UNIXTIME(dp.dt + (3600 * 2)), '%d/%m') as date,
+        dp.temp_day - 272.15 as day_temp,
+        dp.temp_night - 272.15 as night_temp,
+        dp.weather_icon as picture,
+        dp.weather_description as weather_desc,
+        dp.clouds as cloudiness
+    FROM weatherData.current c 
+    JOIN weatherData.locations l ON (l.id = c.id_location)
+    JOIN weatherData.daily_pred dp ON (dp.id_current = c.id_current)
+    WHERE l.location_name = '{dd_value}' and c.dt = {max_timestamp};
+    '''
+    
+    hourly_pred_query = f'''
+    SELECT 
+        hp.dt + (3600 * 2) as pred_timestamp,
+        hp.temp - 272.15 as pred_temp
     FROM weatherData.current c 
     JOIN weatherData.locations l ON (l.id = c.id_location)
     JOIN weatherData.hourly_pred hp ON (hp.id_current = c.id_current)
-    WHERE l.location_name = "{dd_value}"
+    WHERE l.location_name = '{dd_value}' and c.dt = {max_timestamp};
     '''
 
-    cursor.execute(sql)
+    daily_pred_data = execute_query_create_df(daily_pred_query)
+    daily_pred_data = format_daily_pred_data(daily_pred_data)
 
-    temp = pd.DataFrame(cursor.fetchall())
-    temp.columns = next(zip(*cursor.description))
+    hourly_pred_data = execute_query_create_df(hourly_pred_query)
+    hourly_pred_data['pred_timestamp'] = pd.to_datetime(hourly_pred_data['pred_timestamp'], unit='s')
+
     temp['timestamp'] = pd.to_datetime(temp['timestamp'], unit='s')
-
     last_timestamp = temp['timestamp'].max().strftime('%Y/%m/%d %H:%M')
-
     location_and_time = f"{dd_value}, {last_timestamp}"
     current_info.append(location_and_time)
 
@@ -378,7 +436,22 @@ def update_history_chart(dd_value):
         wind_speed = f"{wind_speed} m/s"
         current_info.append(wind_speed)
 
-        fig_history_line_chart = px.line(temp, x='timestamp', y='TEMP', labels=dict(timestamp='Time', TEMP='Temperature'))
+        # Daily prediction blocks
+        daily_pred_blocks = create_prediction_blocks(daily_pred_data.to_dict(orient='records'))
+        current_info.append(daily_pred_blocks)
+
+        # Hourly prediction graph
+        fig_hourly_pred = px.area(
+            hourly_pred_data, x='pred_timestamp', y='pred_temp', labels=dict(pred_timestamp='Time', pred_temp='Temperature (°C)'),
+            line_shape='spline'
+        )
+        fig_hourly_pred.update_layout(
+            yaxis_title=None
+        )
+        fig_hourly_pred.update_yaxes(ticksuffix='°C')
+        current_info.append(fig_hourly_pred)
+
+        fig_history_line_chart = px.line(temp, x='timestamp', y='TEMP', labels=dict(timestamp='Time', TEMP='Temperature (°C)'))
         
         current_info.append(fig_history_line_chart)
         current_info.append({'display': 'block'})

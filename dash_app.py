@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import os
 import numpy as np
 import plotly.graph_objects as go
+from figures import create_fig_hourly_pred, create_fig_history_temp, create_fig_history_pressure, create_fig_history_humidity
 
 def create_label_value_list(input_list):
     return [{'label': item, 'value': item} for item in input_list]
@@ -25,7 +26,9 @@ def format_daily_pred_data(daily_pred_data):
     daily_pred_data['weather_desc'] = daily_pred_data['weather_desc'].str.capitalize()
     return daily_pred_data
 
-
+def format_value(data, column, suffix):
+        value = data.sort_values('timestamp', ascending=False).iloc[0][column]
+        return f"{value:.1f}{suffix}" if isinstance(value, (int, float)) else f"{value}{suffix}"
 
 # Function to create measurement section
 def create_measure_section(measure):
@@ -51,7 +54,6 @@ def create_measure_section(measure):
         style={'textAlign': 'center', 'padding-bottom': '10px'}
     )
 
- 
 def day_prediction_block(dict_values, width_of_block):
     '''
     Insert a dict in this format:
@@ -147,6 +149,12 @@ def create_prediction_blocks(list_of_dicts, width_of_block='12.5%'):
         for dict_values in list_of_dicts
     ]
 
+def create_div_for_history_fig(id):
+    return html.Div(
+                    dcc.Graph(id=id, style={'width':'100%', 'height':'100%', 'overflow': 'hidden'}), 
+                    style={**styles['div_bounding_box'],'width':'100%', 'height':'400px', 'overflow': 'hidden'}
+                )
+
 load_dotenv()
 # Variables
 PASSWORD = os.getenv("PASSWORD")
@@ -187,7 +195,11 @@ styles = {
         'chart_style': {'margin-top': '20px', 'box-shadow': '0px 4px 8px rgba(0, 0, 0, 0.1)', 
                         'border-radius': '10px'},
         'content_measure_style':{'font-size': '16px', 'color': '#777', 'font-family': 'Arial, sans-serif', 
-                          'display': 'inline-block', 'margin-left': '10px'}
+                          'display': 'inline-block', 'margin-left': '10px'},
+        'div_bounding_box':{'border-radius': '10px', 'background-color': '#e0e0e0',
+                                            'box-shadow': '0px 4px 8px rgba(0, 0, 0, 0.1)',
+                                            'box-sizing': 'border-box',
+                                            'margin-top':'10px', 'margin-right':'10px', 'margin-left':'10px'}
     }
 
 dict_values = {'day':'Monday', 'day_temp':'22°C', 'night_temp':'12°C', 'picture':'10d', 'cloudiness':'33 %'}
@@ -208,7 +220,7 @@ app = dash.Dash()
 app.layout = html.Div(
     children=[
         html.Br(),
-        html.H2('Please select a city: ', style=styles['title_style']),
+        html.H2('Please select a city: ', style={**styles['title_style']}),
         dcc.Dropdown(
             id='location_dd',
             options=create_label_value_list(locations['location'].tolist()),
@@ -272,15 +284,14 @@ app.layout = html.Div(
                             style={
                                 'height': '400px', 
                                 'width': '25%', 
-                                'border-radius': '10px', 'background-color': '#e0e0e0',
-                                'box-shadow': '0px 4px 8px rgba(0, 0, 0, 0.1)', 'padding': '20px',
-                                'box-sizing': 'border-box', 'vertical-align': 'top', 'display':'inline-block',
-                                'padding-right':'20px','padding-left':'20px'}
+                                **styles['div_bounding_box'], 'vertical-align': 'top', 'display':'inline-block',
+                                'padding-right':'20px','padding-left':'20px', 'margin-top':'0px'}
                         ),
                         
                         # Prediction part
                         html.Div(
                             children=[
+                                # Daily Prediction
                                 html.Div(
                                     id='daily_prediction_blocks',
                                     style={
@@ -290,18 +301,16 @@ app.layout = html.Div(
                                         'justify-content': 'space-between'
                                     }
                                 ),
+                                # Hourly prediction
                                 html.Div(
                                     html.Div(
-                                        id='hourly_prediction_block',
                                         children=[
-                                            dcc.Graph(id='hourly_pred_figure', style={'height':'120%', 'width':'50%', 'overflow': 'hidden'})
+                                            dcc.Graph(id='hourly_pred_figure', animate=False, style={'height':'120%', 'width':'100%', 'overflow': 'hidden'})
                                         ],
                                         style={
                                             'height': 'calc(100% - 10px)', 
                                             'width': '100%', 
-                                            'border-radius': '10px', 'background-color': '#e0e0e0',
-                                            'box-shadow': '0px 4px 8px rgba(0, 0, 0, 0.1)',
-                                            'box-sizing': 'border-box', 'vertical-align': 'top', 'display':'block',
+                                            **styles['div_bounding_box'], 'vertical-align': 'center', 'display':'block',
                                             'margin-top':'10px', 'margin-right':'10px', 'margin-left':'10px', 'overflow': 'hidden',
                                             'align-items': 'center', 'justify-content': 'center'
                                         }
@@ -315,28 +324,22 @@ app.layout = html.Div(
                                 'height': '400px', 
                                 'width': '75%', 
                                 'display': 'inline-block', 
-                                #'border-radius': '10px', 
-                                #'background-color': '#fff',
-                                #'box-shadow': '0px 4px 8px rgba(0, 0, 0, 0.1)', 
-                                #'padding': '10px',
-                                #'box-sizing': 'border-box'
                             }
                         )
                     ], 
                     style={
                         'display': 'flex', 
                         'width': '100%', 
-                        'height': '500px', 
+                        'height': '400px', 
                         'justify-content': 'space-between'  # Keeps both sections balanced
                     }
                 ),
                 
                 # History chart div (hidden by default)
-                html.Div(
-                    dcc.Graph(id='history_line_chart'), 
-                    id='history_line_container',
-                    style=styles['chart_style']
-                )
+                create_div_for_history_fig(id='history_temp_fig'),
+                create_div_for_history_fig(id='history_pressure_fig'),
+                create_div_for_history_fig(id='history_humidity_fig')
+
             ],id='main_body', style={'display': 'none'}
         )
     ], 
@@ -353,7 +356,9 @@ app.layout = html.Div(
     Output(component_id='current_wind_speed', component_property='children'),
     Output(component_id='daily_prediction_blocks', component_property='children'),
     Output(component_id='hourly_pred_figure', component_property='figure'),
-    Output(component_id='history_line_chart', component_property='figure'),
+    Output(component_id='history_temp_fig', component_property='figure'),
+    Output(component_id='history_pressure_fig', component_property='figure'),
+    Output(component_id='history_humidity_fig', component_property='figure'),
     Output(component_id='main_body', component_property='style'),
     Input(component_id='location_dd', component_property='value')
     
@@ -397,7 +402,10 @@ def update_history_chart(dd_value):
     hourly_pred_query = f'''
     SELECT 
         hp.dt + (3600 * 2) as pred_timestamp,
-        hp.temp - 272.15 as pred_temp
+        hp.temp - 272.15 as pred_temp,
+        hp.feels_like - 272.15 as pred_feels_like,
+        hp.clouds as clouds,
+        hp.weather_description as weather_desc
     FROM weatherData.current c 
     JOIN weatherData.locations l ON (l.id = c.id_location)
     JOIN weatherData.hourly_pred hp ON (hp.id_current = c.id_current)
@@ -418,42 +426,33 @@ def update_history_chart(dd_value):
     if dd_value:
         temp = temp[temp['location_name']==dd_value]
 
-        for column in ['TEMP', 'TEMP_FEELS_LIKE']:
-            current_temp = temp.sort_values('timestamp', ascending=False).iloc[0][column]
-            current_temp_formated = f"{current_temp:.1f}°C"
-            # append current temp
-            current_info.append(current_temp_formated)
-
-        humidity = temp.sort_values('timestamp', ascending=False).iloc[0]['HUMIDITY']
-        humidity = f"{humidity} %"
-        current_info.append(humidity)
-
-        pressure = temp.sort_values('timestamp', ascending=False).iloc[0]['PRESSURE']
-        pressure = f"{pressure} hPa"
-        current_info.append(pressure)
-
-        wind_speed = temp.sort_values('timestamp', ascending=False).iloc[0]['WIND_SPEED']
-        wind_speed = f"{wind_speed} m/s"
-        current_info.append(wind_speed)
+        current_info.append(format_value(temp, 'TEMP', '°C'))
+        current_info.append(format_value(temp, 'TEMP_FEELS_LIKE', '°C'))
+        current_info.append(format_value(temp, 'HUMIDITY', ' %'))
+        current_info.append(format_value(temp, 'PRESSURE', ' hPa'))
+        current_info.append(format_value(temp, 'WIND_SPEED', ' m/s'))
 
         # Daily prediction blocks
         daily_pred_blocks = create_prediction_blocks(daily_pred_data.to_dict(orient='records'))
         current_info.append(daily_pred_blocks)
 
         # Hourly prediction graph
-        fig_hourly_pred = px.area(
-            hourly_pred_data, x='pred_timestamp', y='pred_temp', labels=dict(pred_timestamp='Time', pred_temp='Temperature (°C)'),
-            line_shape='spline'
-        )
-        fig_hourly_pred.update_layout(
-            yaxis_title=None
-        )
-        fig_hourly_pred.update_yaxes(ticksuffix='°C')
+        fig_hourly_pred = create_fig_hourly_pred(hourly_pred_data)
         current_info.append(fig_hourly_pred)
 
-        fig_history_line_chart = px.line(temp, x='timestamp', y='TEMP', labels=dict(timestamp='Time', TEMP='Temperature (°C)'))
-        
-        current_info.append(fig_history_line_chart)
+        # History charts
+        # Temp history
+        fig_history_temp = create_fig_history_temp(temp)
+        current_info.append(fig_history_temp)
+        # Pressure history
+        fig_history_pressure = create_fig_history_pressure(temp)
+        current_info.append(fig_history_pressure)
+        # Humidity history
+        fig_history_humidity = create_fig_history_humidity(temp)
+        current_info.append(fig_history_humidity)
+
+
+        # Main body
         current_info.append({'display': 'block'})
 
     return current_info 

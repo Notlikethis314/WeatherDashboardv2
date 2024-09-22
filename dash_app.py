@@ -8,153 +8,9 @@ from dotenv import load_dotenv
 import os
 import numpy as np
 import plotly.graph_objects as go
-from figures import create_fig_hourly_pred, create_fig_history_temp, create_fig_history_pressure, create_fig_history_humidity
-
-def create_label_value_list(input_list):
-    return [{'label': item, 'value': item} for item in input_list]
-
-def execute_query_create_df(query):
-    cursor.execute(query)
-    temp = pd.DataFrame(cursor.fetchall())
-    temp.columns = next(zip(*cursor.description))
-    return temp
-
-def format_daily_pred_data(daily_pred_data):
-    daily_pred_data['day_temp'] = daily_pred_data['day_temp'].round(1).astype(str) + '°C'
-    daily_pred_data['night_temp'] = daily_pred_data['night_temp'].round(1).astype(str) + '°C'
-    daily_pred_data['cloudiness'] = daily_pred_data['cloudiness'].astype(str) + ' %'
-    daily_pred_data['weather_desc'] = daily_pred_data['weather_desc'].str.capitalize()
-    return daily_pred_data
-
-def format_value(data, column, suffix):
-        value = data.sort_values('timestamp', ascending=False).iloc[0][column]
-        return f"{value:.1f}{suffix}" if isinstance(value, (int, float)) else f"{value}{suffix}"
-
-# Function to create measurement section
-def create_measure_section(measure):
-    # Define the label and ID based on the measurement
-    label_map = {
-        'humidity': 'Current humidity: ',
-        'pressure': 'Current pressure: ',
-        'wind_speed': 'Current wind speed: '
-    }
-    
-    id_map = {
-        'humidity': 'current_humidity',
-        'pressure': 'current_pressure',
-        'wind_speed': 'current_wind_speed'
-    }
-    
-    # Create the section dynamically based on the measure argument
-    return html.Div(
-        children=[
-            html.Span(label_map.get(measure, ''), style=styles['text_measure_style']),
-            html.Span(id=id_map.get(measure, ''), style=styles['content_measure_style'])
-        ],
-        style={'textAlign': 'center', 'padding-bottom': '10px'}
-    )
-
-def day_prediction_block(dict_values, width_of_block):
-    '''
-    Insert a dict in this format:
-    {'day':'Monday', 
-    'day_temp':'22°C', 
-    'night_temp':'12°C', 
-    'picture':'10d', 
-    'cloudiness':'33 %'
-    'weather_desc':'Clouds'}
-    '''
-    # Common styles
-    text_style = {
-        'font-family': 'Arial, sans-serif',
-        'color': '#333'
-    }
-    centered_flex_style = {
-        #'display': 'flex',
-        #'align-items': 'center',
-        #'justify-content': 'center',
-        'box-sizing': 'border-box',
-        'width': '100%'
-    }
-
-    return html.Div(
-        children=[
-            # Left column: day and temperatures
-            html.Div(
-                children=[
-                    html.H1(dict_values.get('date', 'N/A'), style={**text_style, 'font-size': '15px', 'margin-top': '20px',}),
-                    html.H1(dict_values.get('day', 'N/A'), style={**text_style, 'font-size': '15px',}),
-                    html.Br(),
-                    html.Span(dict_values.get('day_temp', 'N/A'), style={**text_style, 'font-size': '24px', 'font-weight': 'bold'}),
-                    html.Br(),
-                    html.Span(dict_values.get('night_temp', 'N/A'), style={**text_style, 'font-size': '18px'})
-                ],
-                style={
-                    'width': '50%',
-                    'height': '100%',
-                    'text-align': 'center',
-                    'box-sizing': 'border-box'
-                }
-            ),
-            
-            # Right column: image and rain chance/humidity
-            html.Div(
-                children=[
-                    html.Div(
-                        children=[
-                            html.Img(
-                            src=f"https://openweathermap.org/img/wn/{dict_values.get('picture', '01d')}@2x.png",
-                            style={'width': '90%', 'height': '100%'}
-                        ),
-                        html.Span(dict_values.get('weather_desc', 'N/A'), style={**text_style, 'font-size': '12px', 'position': 'relative', 'bottom': '25px'})
-                        ],
-                        style={**centered_flex_style, 'height': '50%', 'text-align': 'center'}
-                    ),
-                    html.Div(
-                        children=[
-                            html.Br(),
-                            html.Span('Clouds : ', style={**text_style, 'font-size': '12px'}),
-                            html.Br(),
-                            html.Span(dict_values.get('cloudiness', 'N/A'), style={**text_style, 'font-size': '16px'})
-                        ],
-                        style={**centered_flex_style, 'height': '50%', 'text-align': 'center'}
-                    )
-                ],
-                style={
-                    'width': '50%',
-                    'height': '100%',
-                    'box-sizing': 'border-box',
-                    'display': 'flex',
-                    'flex-direction': 'column'
-                }
-            )
-        ],
-        style={
-            'width': width_of_block,
-            'height': '100%',
-            'box-sizing': 'border-box',
-            'display': 'flex',
-            'flex-direction': 'row',
-            'border-radius': '10px', 'background-color': '#e0e0e0',
-            'box-shadow': '4px 4px 8px rgba(0, 0, 0, 0.1)', 'margin-left': '10px',
-            'box-sizing': 'border-box'
-        }
-    )
-
-def create_prediction_blocks(list_of_dicts, width_of_block='12.5%'):
-    """
-    """
-    return [
-        day_prediction_block(dict_values, width_of_block=width_of_block) 
-        for dict_values in list_of_dicts
-    ]
-
-def create_div_for_history_fig(id):
-    return html.Div(
-                    dcc.Graph(id=id, style={'width':'100%', 'height':'100%', 'overflow': 'hidden'}), 
-                    style={**styles['div_bounding_box'],'width':'100%', 'height':'400px', 'overflow': 'hidden'}
-                )
-
+from figures import *
+from functions import *
+                
 load_dotenv()
 # Variables
 PASSWORD = os.getenv("PASSWORD")
@@ -170,14 +26,13 @@ mydb = mysql.connector.connect(
 
 cursor = mydb.cursor()
 
-
-
 sql_locations = '''
 SELECT DISTINCT
     l.location_name as location
 FROM weatherData.locations l
 '''
 
+# Define styles
 styles = {
         'title_style': {'font-family': 'Arial, sans-serif', 'color': '#333', 'padding': '10px'},
         'dropdown_style': {'width': '220px',
@@ -202,22 +57,12 @@ styles = {
                                             'margin-top':'10px', 'margin-right':'10px', 'margin-left':'10px'}
     }
 
-dict_values = {'day':'Monday', 'day_temp':'22°C', 'night_temp':'12°C', 'picture':'10d', 'cloudiness':'33 %'}
-
-#cursor.execute(sql)
-
-#df_current = pd.DataFrame(cursor.fetchall())
-#df_current.columns = next(zip(*cursor.description))
-
-#df_current['timestamp'] = pd.to_datetime(df_current['timestamp'], unit='s')
-
-cursor.execute(sql_locations)
-locations = pd.DataFrame(cursor.fetchall())
-locations.columns = next(zip(*cursor.description))
+# Query locations
+locations = execute_query_create_df(cursor, sql_locations)
 
 app = dash.Dash()
 
-app.layout = html.Div(
+app.layout = html.Div( # Div with dropdown
     children=[
         html.Br(),
         html.H2('Please select a city: ', style={**styles['title_style']}),
@@ -335,7 +180,7 @@ app.layout = html.Div(
                     }
                 ),
                 
-                # History chart div (hidden by default)
+                # History charts div 
                 create_div_for_history_fig(id='history_temp_fig'),
                 create_div_for_history_fig(id='history_pressure_fig'),
                 create_div_for_history_fig(id='history_humidity_fig')
@@ -381,8 +226,9 @@ def update_history_chart(dd_value):
     WHERE l.location_name = '{dd_value}';
     '''
 
-    temp = execute_query_create_df(history_query)
-    max_timestamp = temp['timestamp'].max() - (3600 * 2)
+    # Current tempreature data
+    current_temp = execute_query_create_df(cursor, history_query)
+    max_timestamp = current_temp['timestamp'].max() - (3600 * 2)
 
     daily_pred_query = f'''
     SELECT 
@@ -412,20 +258,24 @@ def update_history_chart(dd_value):
     WHERE l.location_name = '{dd_value}' and c.dt = {max_timestamp};
     '''
 
-    daily_pred_data = execute_query_create_df(daily_pred_query)
+    # Daily prediction data
+    daily_pred_data = execute_query_create_df(cursor, daily_pred_query)
     daily_pred_data = format_daily_pred_data(daily_pred_data)
 
-    hourly_pred_data = execute_query_create_df(hourly_pred_query)
+    # Hourly prediction data
+    hourly_pred_data = execute_query_create_df(cursor, hourly_pred_query)
     hourly_pred_data['pred_timestamp'] = pd.to_datetime(hourly_pred_data['pred_timestamp'], unit='s')
 
-    temp['timestamp'] = pd.to_datetime(temp['timestamp'], unit='s')
-    last_timestamp = temp['timestamp'].max().strftime('%Y/%m/%d %H:%M')
+    # Current timestamp
+    current_temp['timestamp'] = pd.to_datetime(current_temp['timestamp'], unit='s')
+    last_timestamp = current_temp['timestamp'].max().strftime('%Y/%m/%d %H:%M')
     location_and_time = f"{dd_value}, {last_timestamp}"
     current_info.append(location_and_time)
 
     if dd_value:
-        temp = temp[temp['location_name']==dd_value]
+        temp = current_temp[current_temp['location_name']==dd_value]
 
+        # Current info block
         current_info.append(format_value(temp, 'TEMP', '°C'))
         current_info.append(format_value(temp, 'TEMP_FEELS_LIKE', '°C'))
         current_info.append(format_value(temp, 'HUMIDITY', ' %'))
@@ -457,9 +307,5 @@ def update_history_chart(dd_value):
 
     return current_info 
     
-
-    
-
-
 if __name__ == '__main__':
     app.run_server(debug=True)

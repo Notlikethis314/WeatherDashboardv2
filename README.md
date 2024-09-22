@@ -7,6 +7,14 @@ Afterwards, I query data for specific location inside the dash_app.py and visuli
 
 Currently, this project cannot be recreated, since all of the data are stored on unaccessable Database. I will write a How-to recreate MySQL DB in the future.
 
+## Picture demo
+![Picture demo1](https://github.com/Notlikethis314/WeatherDashboardv2/blob/main/preview1.png?raw=true)
+
+![Picture demo2](https://github.com/Notlikethis314/WeatherDashboardv2/blob/main/preview2.png?raw=true)
+
+## Video demo
+![Video demo2](https://github.com/Notlikethis314/WeatherDashboardv2/blob/main/demo.gif?raw=true)
+
 ## Features
 - Interactive dashboard displaying current, historical and predicted weather conditions.
 - Real-time data updates.
